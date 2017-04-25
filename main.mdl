@@ -1,0 +1,288 @@
+/*	
+	MCell Model for AMPAR
+	
+	Nishant Singh (nishant.singh@students.iiserpune.ac.in)
+	Computational NeuroBio Lab
+	IISER Pune
+	
+	Two schemes of AMPA are modelled here:
+		-- Milstein-Nicoll (MN) AMPAR scheme
+		-- Jonas-Sakmann (JS) AMPAR scheme
+*/
+
+	ITERATIONS = 30e3
+	TIME_STEP = 1e-06
+	VACANCY_SEARCH_DISTANCE = 10
+	
+	INCLUDE_FILE = "initialization.mdl"
+	
+	/* Store the value of SEED in variable seed */
+	sprintf(seed,"%05g",SEED)
+	
+	/* Specify directory for output data */
+	output_folder = "./data/s_" & seed
+
+/*	Reaction Rates */
+	/*	Diffusion Constant Units : cm^2/sec
+		μm^2/ms = 1e-5 cm^2/sec */
+	
+	//	Milstein-Nicoll (MN) AMPAR scheme
+		AMPA_AMPAG = 1e7
+		AMPAG_AMPA = 5e4
+		AMPAG_C1 = 3.65e4
+		C1_AMPAG = 4.55e3    
+		C1_C2 = 3e2
+		C2_C1 = 1e4
+		C1_O1 = 1e4
+		O1_C1 = 6e3
+		C2_O2 = 1e4
+		O2_C2 = 6e3
+		C1_D1 = 1.11e3
+		D1_C1 = 1
+		C2_D2 = 3e2
+		D2_C2 = 10
+		T0_T1 = 1.8e7
+		T1_T0 = 1.8e9
+		T1_T2 = 1.8e9
+		T2_T0 = 2.57e8
+		
+	
+	//	Jonas-Sakmann (JS) AMPAR scheme
+	/*	AMPA_C1 = 4.59E6
+		C1_AMPA = 4.26e3
+		C1_C2 = 2.84E7
+		C2_C1 = 3.26E3
+		C2_O  = 4.24E3
+		O_C2  = 9.00E2
+		C1_C3 = 2.89E3
+		C3_C1 = 3.92E1
+		C2_C4 = 1.72E2
+		C4_C2 = 0.727
+		O_C5  = 1.77E1
+		C5_O  = 4.00
+		C3_C4 = 1.27E6
+		C4_C3 = 4.57E1
+		C4_C5 = 1.68E1
+		C5_C4 = 1.90E2
+	*/
+	
+	//	Transporter Scheme
+		T0_T1 = 1.8E7
+		T1_T0 = 1.8E9
+		T1_T2 = 1.8E9
+		T2_T0 = 2.57E8
+	
+
+DEFINE_MOLECULES
+{
+	Glu {DIFFUSION_CONSTANT_3D = 2e-06}
+	AMPA {DIFFUSION_CONSTANT_2D = 0}
+	
+	//	Milstein-Nicoll AMPAR scheme 
+		AMPAGlu {DIFFUSION_CONSTANT_2D = 0}
+		C1 {DIFFUSION_CONSTANT_2D = 0}
+		C2 {DIFFUSION_CONSTANT_2D = 0}
+		D1 {DIFFUSION_CONSTANT_2D = 0}
+		D2 {DIFFUSION_CONSTANT_2D = 0}
+		O1 {DIFFUSION_CONSTANT_2D = 0}
+		O2 {DIFFUSION_CONSTANT_2D = 0}
+		
+	
+	//	Jonas-Sakmann AMPAR scheme
+	/*	C1 {DIFFUSION_CONSTANT_2D = 0}
+		C2 {DIFFUSION_CONSTANT_2D = 0}
+		C3 {DIFFUSION_CONSTANT_2D = 0}
+		C4 {DIFFUSION_CONSTANT_2D = 0}
+		C5 {DIFFUSION_CONSTANT_2D = 0}
+		O  {DIFFUSION_CONSTANT_2D = 0}
+	*/
+	
+	// Transporter Scheme
+		T0 {DIFFUSION_CONSTANT_2D = 0}
+		T1 {DIFFUSION_CONSTANT_2D = 0}
+		T2 {DIFFUSION_CONSTANT_2D = 0}
+
+}
+
+DEFINE_REACTIONS
+{
+	//	Milstein-Nicoll AMPAR scheme
+		AMPA, + Glu, <-> AMPAGlu, [>AMPA_AMPAG, <AMPAG_AMPA]
+		AMPAGlu, <-> C1, [>AMPAG_C1, <C1_AMPAG]
+		C1, <-> C2, [>C1_C2, <C2_C1]
+		C1, <-> D1, [>C1_D1, <D1_C1]
+		C1, <-> O1, [>C1_O1, <O1_C1]
+		C2, <-> D2, [>C2_D2, <D2_C2]
+		C2, <-> O2, [>C2_O2, <O2_C2]
+	
+		
+	//	Jonas-Sakmann AMPAR scheme
+	/*	AMPA, <-> C1, [>AMPA_C1, <C1_AMPA]
+		C1, <-> C2, [>C1_C2, <C2_C1]
+		C1, <-> C3, [>C1_C3, <C3_C1]
+		C2, <-> C4, [>C2_C4, <C4_C2]
+		C3, <-> C4, [>C3_C4, <C4_C3]
+		C4, <-> C5, [>C4_C5, <C5_C4]
+		C2, <-> O,  [>C2_O, <O_C2]
+		C5, <-> O,  [>C5_O, <O_C5]
+	*/
+	
+	// Transporter Scheme
+		T0, + Glu, <-> T1, [>T0_T1, <T1_T0]
+		T1, -> T2, [T1_T2]
+		T2, -> T0, [T2_T0]
+}
+
+INCLUDE_FILE = "geometry.mdl"
+
+/*	Surface Classes */
+DEFINE_SURFACE_CLASSES {
+	transp {
+		TRANSPARENT = Glu
+	}
+}
+
+MODIFY_SURFACE_REGIONS {
+	/* Counting planes and box are made transparent Glu */
+	CyCleft [Cleft]{
+		SURFACE_CLASS = transp
+	}
+	Circle [MidSurf] {
+		SURFACE_CLASS = transp
+	}
+	AMPAspillBox [spillBox]{
+		SURFACE_CLASS = transp
+	}
+}
+
+/* Definition for Glutamate Release Pattern */
+
+/* Two pulses of Glu release with an interval of 5ms */
+DEFINE_RELEASE_PATTERN Glu_rel_pat_5ms 
+{
+	DELAY = 5e-03
+	TRAIN_DURATION = 1e-03
+	TRAIN_INTERVAL = 5e-03
+	NUMBER_OF_TRAINS = 2
+}
+
+/* Two pulses of Glu release with an interval of 10ms */
+DEFINE_RELEASE_PATTERN Glu_rel_pat_10ms 
+{
+	DELAY = 5e-03
+	TRAIN_DURATION = 1e-03
+	TRAIN_INTERVAL = 10e-03
+	NUMBER_OF_TRAINS = 2
+}
+
+/* Continuous pulses of Glu release with an interval of 20ms */
+DEFINE_RELEASE_PATTERN Glu_rel_pat_50hz 
+{
+	DELAY = 5e-03
+	TRAIN_DURATION = 1e-03
+	TRAIN_INTERVAL = 20e-03
+	NUMBER_OF_TRAINS = UNLIMITED
+}
+
+INSTANTIATE ampar_model OBJECT
+{
+	CyGlia OBJECT CyGlia {}	// Glial Surface
+	CyPost OBJECT CyPost {}	// PostSynaptic Surface
+	CyPre OBJECT CyPre {}	// PreSynaptic Surface
+	CyCleft OBJECT CyCleft {}	// Cleft (volume betweem pre and post synaptic terminals)
+	Circle OBJECT Circle {} // Counting plane in the middle of cleft
+	AMPAspillBox OBJECT AMPAspillBox {}	// Counting box just above the post-synaptic surface
+
+	/* Defining how AMPA are placed in the system */
+	AMPA_rel RELEASE_SITE	// Randomly placing 130 molecules of AMPA on PostSynaptic Surface
+	{
+		SHAPE = ampar_model.CyPost[PostSurf]
+		MOLECULE = AMPA,
+		NUMBER_TO_RELEASE = 130
+		RELEASE_PROBABILITY = 1
+	}
+	
+	/* Defining how Glu are released in the system */
+	Glu_rel RELEASE_SITE
+	{
+		SHAPE = SPHERICAL
+		LOCATION = [0, 0, 0.008]
+		SITE_DIAMETER = 0
+		MOLECULE = Glu
+		NUMBER_TO_RELEASE = 3000
+		
+		RELEASE_PATTERN = Glu_rel_pat_5ms	// 2 pulse; interval = 5ms
+	//	RELEASE_PATTERN = Glu_rel_pat_10ms	// 2 pulse; interval = 10ms
+	//	RELEASE_PATTERN = Glu_rel_pat_50hz	// continuous pulse; interval = 20ms
+	
+		RELEASE_PROBABILITY = 1
+	}
+	
+	/* Defining how Transporters (T0) are placed in the system */
+	T0_rel RELEASE_SITE	// Randomly placing T0 molecules on Glial Surface 
+	{					// with density in molecules per μm^2
+		SHAPE = ampar_model.CyGlia[GliaSurf]
+		MOLECULE = T0,
+		DENSITY = 1000
+		RELEASE_PROBABILITY = 1
+	}
+}
+
+/*	Reaction Output */
+REACTION_DATA_OUTPUT
+{
+	OUTPUT_BUFFER_SIZE = 10000
+	STEP = 1e-06
+	SHOW_EXACT_TIME = OFF
+	HEADER = "#"
+	
+	/* For Milstein-Nicoll */
+		{	COUNT[AMPA,WORLD] : "AMPA",
+			COUNT[AMPAGlu,WORLD] : "AMPAGlu",
+			COUNT[C1,WORLD] : "C1",
+			COUNT[C2,WORLD] : "C2",
+			COUNT[D1,WORLD] : "D1",
+			COUNT[D2,WORLD] : "D2",
+			COUNT[O1,WORLD] : "O1",
+			COUNT[O2,WORLD] : "O2"
+		} => output_folder &"/dat/ampa.dat"
+	
+	
+	/* For Jonas-Sakmann */
+	/*	{	COUNT[AMPA,WORLD] : "C0/AMPA",
+			COUNT[C1,WORLD] : "C1",
+			COUNT[C2,WORLD] : "C2",
+			COUNT[C3,WORLD] : "C3",
+			COUNT[C4,WORLD] : "C4",
+			COUNT[C5,WORLD] : "C5",
+			COUNT[O,WORLD] : "O"
+		}	=> output_folder &"/dat/ampa.dat"
+	*/
+	
+	/* Counting Glutamate */
+		{	COUNT[Glu,WORLD] : "global",
+			COUNT[Glu,ampar_model.CyCleft] : "cleft",
+			COUNT[Glu,ampar_model.AMPAspillBox] : "AMPAspillBox",
+			COUNT[Glu, ampar_model.Circle, ESTIMATE_CONCENTRATION]*EXPRESSION[2.0] : "conc"
+		}	=> output_folder &"/dat/Glu.dat"
+
+	/* Counting Transporters */
+		{	COUNT[T0,WORLD] : "T0", 
+			COUNT[T1,WORLD] : "T1",
+			COUNT[T2,WORLD] : "T2"
+		}	=> output_folder &"/dat/transporters.dat"
+
+}
+	
+/* 	Visualize Output */
+VIZ_OUTPUT
+{
+	MODE = CELLBLENDER
+	FILENAME = output_folder &"/viz/ampa"
+	MOLECULES
+	{
+		NAME_LIST {ALL_MOLECULES}
+		ITERATION_NUMBERS {ALL_DATA @ [[0 TO 100000 STEP 100]]}
+	}
+}
+
